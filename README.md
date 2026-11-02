@@ -8,7 +8,7 @@ A Claude Code **skill** and **plugin** for comprehensive app performance optimiz
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| **Skill** | `skills/app-performance/SKILL.md` | Coding rules and patterns loaded into Claude's context when working on performance |
+| **Skill** | `skills/cogumi-app-performance/SKILL.md` | Coding rules and patterns loaded into Claude's context when working on performance |
 | **Plugin** | `plugin/SKILL.md` | Three slash commands for automated Lighthouse measurement |
 | `baseline.sh` | `plugin/scripts/baseline.sh` | Run Lighthouse, save scores to `perf-scores.json` |
 | `compare.sh` | `plugin/scripts/compare.sh` | Re-run Lighthouse, diff against baseline |
@@ -69,7 +69,7 @@ Clone this repo and copy the skill file into your Claude skills directory:
 
 ```bash
 git clone https://github.com/dkeviv/cogumi-app-performance.git
-cp cogumi-app-performance/skills/app-performance/SKILL.md ~/.claude/skills/app-performance.md
+cp cogumi-app-performance/skills/cogumi-app-performance/SKILL.md ~/.claude/skills/cogumi-app-performance.md
 ```
 
 Once installed, the skill loads automatically when your task involves: `performance`, `slow`, `loading`, `LCP`, `INP`, `CLS`, `bundle`, `skeleton`, `caching`, `N+1`, `streaming`, `lazy`, `debounce`, `waterfall`, `prefetch`, `Redis`, or `timeout`.
@@ -221,7 +221,7 @@ git commit -m "chore: add Lighthouse CI performance budgets"
    └─ bash plugin/scripts/baseline.sh        # capture current state
 
 2. Apply optimizations
-   └─ (Claude uses the app-performance skill to guide changes)
+   └─ (Claude uses the cogumi-app-performance skill to guide changes)
 
 3. Measure improvement
    └─ bash plugin/scripts/compare.sh         # verify delta
@@ -250,7 +250,7 @@ The skill loads coding rules across these categories when triggered:
 | **Caching** | TanStack Query staleTime, Redis cache-aside pattern, TTL strategy |
 | **AI / streaming** | Stream-first token, TTFT budget, stream cancellation, retry backoff |
 
-Full rules with bad/good code examples are in [`skills/app-performance/SKILL.md`](skills/app-performance/SKILL.md).
+Full rules with bad/good code examples are in [`skills/cogumi-app-performance/SKILL.md`](skills/cogumi-app-performance/SKILL.md).
 
 ---
 
@@ -273,7 +273,7 @@ cogumi-app-performance/
 ├── README.md
 ├── REQUIREMENTS.md              # Full design spec and rationale
 ├── skills/
-│   └── app-performance/
+│   └── cogumi-app-performance/
 │       └── SKILL.md             # The skill — loaded into Claude's context
 └── plugin/
     ├── SKILL.md                 # Plugin docs and slash command definitions
