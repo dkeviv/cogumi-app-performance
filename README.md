@@ -48,7 +48,19 @@ bash plugin/scripts/install-check.sh
 
 ---
 
-## Installing the skill
+## Installing for Codex
+
+Copy `AGENTS.md` into your project root — Codex reads it automatically:
+
+```bash
+curl -O https://raw.githubusercontent.com/dkeviv/cogumi-app-performance/main/AGENTS.md
+```
+
+That's it. Codex will apply the performance rules and read `perf-scores.json` when present.
+
+---
+
+## Installing the skill (Claude Code)
 
 ### Option A — Claude Code marketplace (recommended)
 
