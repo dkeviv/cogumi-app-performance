@@ -400,6 +400,119 @@ const articles = await db.article.findMany({
 
 ---
 
+## P0 — Next.js (App Router)
+
+### Images — use `next/image` always
+
+```tsx
+// Bad: raw <img> bypasses optimization
+<img src="/hero.jpg" fetchpriority="high" />
+
+// Good: next/image handles WebP/AVIF conversion, sizing, lazy loading
+import Image from 'next/image';
+
+<Image
+  src="/hero.jpg"
+  alt="Hero"
+  width={1280}
+  height={720}
+  priority          // replaces fetchpriority="high" for above-fold images
+  placeholder="blur"
+  blurDataURL="data:image/jpeg;base64,..."
+/>
+```
+
+**Rule:** `priority` on the first visible image; omit it on all others (they lazy-load automatically).
+
+### Fonts — use `next/font`
+
+```ts
+// Bad: external @import stalls rendering, causes FOUT
+// @import url('https://fonts.googleapis.com/css2?family=Inter');
+
+// Good: zero layout shift, self-hosted automatically
+import { Inter } from 'next/font/google';
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+
+export default function Layout({ children }) {
+  return <html className={inter.className}>{children}</html>;
+}
+```
+
+### Streaming with Suspense (App Router)
+
+Show a skeleton instantly while slow data loads; don't block the whole page.
+
+```tsx
+// Bad: entire page waits for the slowest fetch
+export default async function Page() {
+  const [feed, trending] = await Promise.all([getFeed(), getTrending()]);
+  return <><Feed data={feed} /><Trending data={trending} /></>;
+}
+
+// Good: stream independently — fast parts arrive first
+import { Suspense } from 'react';
+
+export default function Page() {
+  return (
+    <>
+      <Suspense fallback={<FeedSkeleton />}>
+        <Feed />          {/* async Server Component */}
+      </Suspense>
+      <Suspense fallback={<TrendingSkeleton />}>
+        <Trending />
+      </Suspense>
+    </>
+  );
+}
+```
+
+**Rule:** One `Suspense` boundary per independently-fetchable section. Never wrap the whole page in one boundary.
+
+### Static vs dynamic rendering
+
+```ts
+// Force static (cached at build time) — fastest possible response
+export const dynamic = 'force-static';
+
+// Revalidate on a schedule (ISR)
+export const revalidate = 60;  // seconds
+
+// Dynamic per request — only when you need live data
+export const dynamic = 'force-dynamic';
+```
+
+**Rule:** Default to static. Use `revalidate` for data that changes on a schedule. Use `force-dynamic` only for personalized or real-time pages.
+
+### Server-side caching with `unstable_cache`
+
+```ts
+import { unstable_cache } from 'next/cache';
+
+const getCachedArticles = unstable_cache(
+  async (userId: string) => db.article.findMany({ where: { userId } }),
+  ['articles'],          // cache key segments
+  { revalidate: 60, tags: ['articles'] }
+);
+
+// Invalidate on mutation
+import { revalidateTag } from 'next/cache';
+await revalidateTag('articles');
+```
+
+### `loading.tsx` — instant loading UI
+
+Create `app/[route]/loading.tsx` alongside `page.tsx`. Next.js streams it immediately while the page fetches data — no extra code needed.
+
+```
+app/
+  dashboard/
+    loading.tsx   ← shown instantly while page.tsx awaits
+    page.tsx
+```
+
+---
+
 ## P1 — Caching Architecture
 
 Apply in this order: client cache → server Redis → DB. Do not add Redis until client caching

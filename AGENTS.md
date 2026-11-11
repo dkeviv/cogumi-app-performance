@@ -59,6 +59,15 @@ bash path/to/cogumi-app-performance/plugin/scripts/compare.sh [url]
 - For AI streaming: stream first token immediately; cancel stream on unmount/new query; log TTFT
 - `useMemo`/`useCallback`/`memo` only after React Profiler confirms unnecessary re-renders
 
+### Next.js / App Router rules
+
+- Use `next/image` for every image — automatic WebP/AVIF, sizing, lazy loading; add `priority` on the first visible image (replaces `fetchpriority="high"`)
+- Use `next/font` for all fonts — zero layout shift, self-hosted automatically; never `@import` from Google Fonts in CSS
+- Suspense boundaries per independently-fetchable section: `<Suspense fallback={<Skeleton />}><AsyncComponent /></Suspense>`; never one boundary for the whole page
+- Create `app/[route]/loading.tsx` for instant streaming UI while `page.tsx` fetches data
+- Default to static rendering (`export const revalidate = 60` for ISR); use `export const dynamic = 'force-dynamic'` only for personalized/real-time pages
+- Server-side caching: `unstable_cache` with `tags`; invalidate with `revalidateTag` / `revalidatePath` on mutation
+
 ### Anti-patterns (never do these)
 
 - Add Redis/CDN before confirming the DB is the bottleneck
