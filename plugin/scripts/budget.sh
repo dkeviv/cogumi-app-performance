@@ -37,6 +37,7 @@ cat > "$LHCI_CONFIG" <<EOF
     },
     "assert": {
       "preset": "lighthouse:no-pwa",
+      "budgetsFile": "perf.budget.json",
       "assertions": {
         "categories:performance": ["error", {"minScore": 0.7}],
         "categories:accessibility": ["warn", {"minScore": 0.9}],
@@ -110,8 +111,11 @@ jobs:
       - run: lhci autorun
         env:
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      # Regression gate: fails if any category drops > 10 points vs the committed perf-scores.json.
+      # Requires the plugin scripts in the repo (clone or vendor cogumi-app-performance/plugin/scripts).
+      - run: bash cogumi-app-performance/plugin/scripts/compare.sh http://localhost:3000
 EOF
 
 echo ""
 echo "Add the GitHub Actions snippet above to .github/workflows/perf.yml"
-echo "Commit $LHCI_CONFIG and $BUDGET_FILE to your repository."
+echo "Commit $LHCI_CONFIG, $BUDGET_FILE and perf-scores.json (from baseline.sh) to your repository."

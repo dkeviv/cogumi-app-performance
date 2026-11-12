@@ -14,6 +14,11 @@ A Claude Code **skill** and **plugin** for comprehensive app performance optimiz
 | `compare.sh` | `plugin/scripts/compare.sh` | Re-run Lighthouse, diff against baseline |
 | `budget.sh` | `plugin/scripts/budget.sh` | Generate `lighthouserc.json` and `perf.budget.json` for CI |
 | `install-check.sh` | `plugin/scripts/install-check.sh` | Verify all prerequisites are installed |
+| `api-p95.sh` | `plugin/scripts/api-p95.sh` | Measure API p95 latency against the 500ms budget |
+| `summarize.sh` | `plugin/scripts/summarize.sh` | Turn three Lighthouse reports into per-metric medians (used by baseline and compare) |
+| Plugin manifests | `.claude-plugin/` | Marketplace and plugin manifests for `/plugin install` |
+| Slash commands | `commands/` | `/perf-baseline`, `/perf-compare`, `/perf-budget` |
+| Tests | `tests/` | Bash test suite with stub `lhci` and `curl`: `bash tests/run.sh` |
 
 ---
 
@@ -66,7 +71,7 @@ That's it. Codex will apply the performance rules and read `perf-scores.json` wh
 
 ```bash
 /plugin marketplace add dkeviv/cogumi-app-performance
-/plugin install app-performance@cogumi-app-performance
+/plugin install cogumi-app-performance@cogumi-app-performance
 ```
 
 ### Option B — npx
@@ -164,7 +169,7 @@ bash plugin/scripts/compare.sh http://localhost:3000 --save
 **What it does:**
 - Runs Lighthouse 3 times with the same mobile throttling as baseline
 - Diffs every metric against `perf-scores.json`
-- Exits with code 1 if the performance score dropped more than 10 points
+- Exits with code 1 if any category score (performance, accessibility, SEO, best practices) dropped more than 10 points
 - Optionally updates the baseline with `--save`
 
 **Example output:**
@@ -226,6 +231,26 @@ git commit -m "chore: add Lighthouse CI performance budgets"
 
 ---
 
+## Measuring API p95
+
+Lighthouse cannot measure API latency. Measure it directly:
+
+```bash
+bash plugin/scripts/api-p95.sh -n 20 https://staging.myapp.com/api/articles
+```
+
+Each URL is requested 20 times (default). The script prints the p95 and exits 1 if any URL exceeds 500ms.
+
+---
+
+## CI regression gate
+
+`budget.sh` writes `lighthouserc.json` (absolute floors: performance ≥ 0.7, LCP ≤ 2500ms, CLS ≤ 0.1) and `perf.budget.json` (referenced via `budgetsFile`). The workflow it prints also runs `compare.sh` against the committed `perf-scores.json`, so a PR fails if any category score drops more than 10 points. Commit `perf-scores.json` after `baseline.sh` and refresh it with `compare.sh <url> --save` when a change is intentional.
+
+INP is a field-only budget: lab navigation runs do not produce it. Check CrUX p75 separately.
+
+---
+
 ## Recommended workflow
 
 ```
@@ -239,7 +264,7 @@ git commit -m "chore: add Lighthouse CI performance budgets"
    └─ bash plugin/scripts/compare.sh         # verify delta
 
 4. If improved, update baseline
-   └─ bash plugin/scripts/compare.sh --save  # promote to new baseline
+   └─ bash plugin/scripts/compare.sh http://localhost:3000 --save  # promote to new baseline
 
 5. Set up CI (once per project)
    └─ bash plugin/scripts/budget.sh          # generate CI config
@@ -259,8 +284,11 @@ The skill loads coding rules across these categories when triggered:
 | **Rendering** | Async waterfall elimination, re-render optimization (React) |
 | **API / network** | Request deduplication, cancellation (AbortController), cursor pagination, timeouts |
 | **Backend / database** | N+1 detection, index auditing, column selection |
-| **Caching** | TanStack Query staleTime, Redis cache-aside pattern, TTL strategy |
-| **AI / streaming** | Stream-first token, TTFT budget, stream cancellation, retry backoff |
+| **Caching** | TanStack Query staleTime, Redis cache-aside, multi-layer memory → Redis → DB, TTL strategy |
+| **Compression / CDN / service workers** | Brotli verification, immutable hashed assets, critical CSS, service worker strategies |
+| **AI / streaming** | Stream-first token, TTFT budget, stream cancellation, retry backoff, partial-response fallback |
+| **Infrastructure (P2)** | Edge and load balancing, only when measured data justifies them |
+| **Next.js (App Router)** | `next/image` priority, `next/font`, Suspense boundaries, `loading.tsx`, static vs dynamic rendering, `unstable_cache` |
 
 Full rules with bad/good code examples are in [`skills/cogumi-app-performance/SKILL.md`](skills/cogumi-app-performance/SKILL.md).
 
@@ -274,7 +302,7 @@ Full rules with bad/good code examples are in [`skills/cogumi-app-performance/SK
 - **Do not add `memo`/`useMemo`/`useCallback`** without profiler evidence.
 - **Never `loading="lazy"` the first visible image** — it delays LCP.
 - **Never optimistic UI on payments, deletes, or permission changes.**
-- **Test on low-end mobile**: CPU throttle 4×, Slow 3G network.
+- **Test on low-end mobile**: CPU throttle 4×, Slow 4G network (Lighthouse's profile, shared by all scripts).
 
 ---
 
@@ -284,16 +312,28 @@ Full rules with bad/good code examples are in [`skills/cogumi-app-performance/SK
 cogumi-app-performance/
 ├── README.md
 ├── REQUIREMENTS.md              # Full design spec and rationale
+├── AGENTS.md                    # Rules for Codex and other AI agents
+├── .claude-plugin/
+│   ├── plugin.json              # Plugin manifest
+│   └── marketplace.json         # Marketplace manifest
 ├── skills/
 │   └── cogumi-app-performance/
 │       └── SKILL.md             # The skill — loaded into Claude's context
+├── commands/
+│   ├── perf-baseline.md         # /perf-baseline
+│   ├── perf-compare.md          # /perf-compare
+│   └── perf-budget.md           # /perf-budget
+├── tests/                       # bash test suite: bash tests/run.sh
 └── plugin/
-    ├── SKILL.md                 # Plugin docs and slash command definitions
+    ├── SKILL.md                 # Plugin docs
     └── scripts/
         ├── install-check.sh     # Verify prerequisites
-        ├── baseline.sh          # /perf-baseline
-        ├── compare.sh           # /perf-compare
-        └── budget.sh            # /perf-budget
+        ├── baseline.sh          # Baseline (median of 3 runs)
+        ├── compare.sh           # Compare + regression gate
+        ├── budget.sh            # CI config generator
+        ├── summarize.sh         # Reports → per-metric medians
+        ├── api-p95.sh           # API p95 budget check
+        └── lib/settings.sh      # Shared Slow 4G throttling profile
 ```
 
 ---

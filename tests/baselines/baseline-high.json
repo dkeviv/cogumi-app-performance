@@ -1,0 +1,22 @@
+{
+  "url": "http://localhost:3000/",
+  "timestamp": "2026-11-10T10:00:00.000Z",
+  "scores": {
+    "performance": 90,
+    "accessibility": 90,
+    "seo": 90,
+    "best_practices": 90
+  },
+  "metrics": {
+    "lcp_ms": 2400,
+    "inp_ms": null,
+    "cls": 0.05,
+    "fcp_ms": 1200,
+    "tbt_ms": 200,
+    "speed_index": 2000
+  },
+  "budgets": {
+    "js_kb": 195,
+    "image_kb": 98
+  }
+}

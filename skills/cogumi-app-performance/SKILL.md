@@ -1,3 +1,8 @@
+---
+name: cogumi-app-performance
+description: App performance rules and measurement for web apps and APIs — Core Web Vitals (LCP, INP, CLS), bundle and image budgets, rendering waterfalls, API efficiency, N+1 and indexes, caching (client, Redis, CDN), AI streaming TTFT, and Next.js App Router. Use when the task involves performance, slow pages, loading, LCP, INP, CLS, bundle size, skeletons, caching, N+1, streaming, lazy loading, debounce, waterfalls, prefetch, Redis, timeouts, or stale data.
+---
+
 # App Performance
 
 ## When to use this skill
@@ -292,7 +297,7 @@ async function search(query: string) {
   controllerRef.current = new AbortController();
   
   try {
-    const results = await fetch(`/api/search?q=${query}`, {
+    const results = await fetch(`/api/search?q=${encodeURIComponent(query)}`, {
       signal: controllerRef.current.signal,
     }).then(r => r.json());
     setResults(results);
@@ -381,7 +386,7 @@ ORDER BY mean_exec_time DESC
 LIMIT 20;
 
 -- Explain a slow query
-EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM articles WHERE author_id = $1 ORDER BY created_at DESC;
+EXPLAIN (ANALYZE, BUFFERS) SELECT id, title, author_id, created_at FROM articles WHERE author_id = $1 ORDER BY created_at DESC;
 -- If "Seq Scan" on a large table → add index
 CREATE INDEX CONCURRENTLY idx_articles_author_created ON articles(author_id, created_at DESC);
 ```
@@ -432,7 +437,7 @@ import Image from 'next/image';
 
 // Good: zero layout shift, self-hosted automatically
 import { Inter } from 'next/font/google';
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const inter = Inter({ subsets: ['latin'], display: 'optional' });  // matches the CLS rule: no late font swap
 
 export default function Layout({ children }) {
   return <html className={inter.className}>{children}</html>;
@@ -472,13 +477,13 @@ export default function Page() {
 ### Static vs dynamic rendering
 
 ```ts
-// Force static (cached at build time) — fastest possible response
+// Option A (choose one per route): static — cached at build time, fastest response
 export const dynamic = 'force-static';
 
-// Revalidate on a schedule (ISR)
-export const revalidate = 60;  // seconds
+// Option B (choose one per route): ISR — static, regenerated every 60s
+export const revalidate = 60;
 
-// Dynamic per request — only when you need live data
+// Option C (choose one per route): per request — only for live or personalized data
 export const dynamic = 'force-dynamic';
 ```
 
@@ -552,6 +557,12 @@ async function updateArticle(id: string, data: Partial<Article>) {
 ```
 
 **Key naming:** `resource:id` (e.g. `article:abc123`), `list:resource:filter` (e.g. `list:articles:user:456`)
+
+### Multi-layer caching (memory → Redis → DB)
+
+Read path: in-process memory, then Redis, then the DB. On a Redis hit, promote the value into memory with a short TTL (about 30s). On a DB read, write to Redis and memory. Memory is bounded (LRU with a fixed maximum entry count); Redis uses `EX` TTLs. A write deletes the Redis key and the local memory entry; other instances converge when their memory TTL expires.
+
+Add the memory layer only after Redis hit rate and DB load show it is needed.
 
 ---
 
@@ -627,15 +638,78 @@ async function streamWithRetry(prompt: string, maxRetries = 2) {
 }
 ```
 
+### Partial-response fallback
+
+Once tokens have reached the user, never restart the stream from scratch. On an error mid-stream, keep the partial text, show a notice, and offer a retry. Retry with backoff only before the first token arrives.
+
+```ts
+let text = '';
+try {
+  for await (const chunk of stream) {
+    text += chunk.delta;
+    setAnswer(text);
+  }
+} catch (e) {
+  if (e.name === 'AbortError') return;
+  setAnswer(text);
+  setNotice('Response interrupted. Retry?');
+}
+```
+
+---
+
+## P1 — Compression, CDN, Service Workers
+
+### Compression
+
+Serve Brotli (gzip as fallback) for text assets. Verify it on the real origin:
+
+```bash
+curl -sI -H 'Accept-Encoding: br' https://example.com/app.js | grep -i content-encoding
+# expect: content-encoding: br
+```
+
+A missing `content-encoding` on JS or CSS is a finding. The 300 KB JS budget is measured on transfer size.
+
+### Cache headers
+
+```
+Hashed static assets (app.3f9a.js) → Cache-Control: public, max-age=31536000, immutable
+HTML documents                      → Cache-Control: no-cache
+API responses                       → set per endpoint; never cache personalized data publicly
+```
+
+### Critical CSS
+
+Inline the CSS needed for above-the-fold content, or preload the stylesheet and defer the rest. Do this only when measured data flags render-blocking CSS.
+
+### Service workers
+
+- Static assets: cache-first (versioned URLs make this safe).
+- API GET requests: network-first, falling back to the last cached response when offline.
+- Never cache POST, payment, or permission endpoints.
+- Register after the first load succeeds so registration does not compete with LCP.
+
+---
+
+## P2 — Infrastructure (scale-justified only)
+
+Do not add these without measured evidence.
+
+- **Edge or multi-region:** only when p75 TTFB is high from several regions in measured data. Measure from each region first.
+- **Load balancing:** only when one instance shows saturation (CPU or request queue depth) in measured data.
+
 ---
 
 ## Measurement rules
 
 1. **Always capture baseline first** — run `/perf-baseline` (plugin) before any change.
 2. **Report before/after** — every optimization must include metric delta.
-3. **Field data over lab** — CrUX p75 is truth; Lighthouse score is a lab proxy.
-4. **Test on low-end mobile** — CPU throttle 4×, Slow 3G network.
+3. **Field data over lab** — budgets are defined on CrUX p75 field data; Lighthouse is a lab proxy.
+4. **Test on low-end mobile** — CPU throttle 4×, Slow 4G network (Lighthouse's profile, shared by all plugin scripts).
 5. **Do not claim improvement without numbers.**
+
+**Lab vs field.** INP is field-only: lab navigation runs do not produce it, so TBT is the lab responsiveness proxy. Get CrUX p75 from the PageSpeed Insights API or the CrUX dashboard. Measure API p95 with `plugin/scripts/api-p95.sh`.
 
 ---
 

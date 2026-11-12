@@ -24,7 +24,7 @@ No existing skill covers all of these. This skill borrows the best parts from:
 | API response (p95) | ≤ 500ms | per endpoint |
 | TTFT (AI streaming) | ≤ 1s | per LLM call |
 
-## Skill: `app-performance` (SKILL.md)
+## Skill: `cogumi-app-performance` (SKILL.md)
 
 **Trigger keywords:** performance, slow, loading, optimization, LCP, INP, CLS, bundle, skeleton,
 caching, N+1, streaming, lazy, debounce, waterfall, prefetch, Redis, timeout, stale
@@ -91,8 +91,17 @@ caching, N+1, streaming, lazy, debounce, waterfall, prefetch, Redis, timeout, st
 - `scripts/install-check.sh` — verifies Lighthouse and Chrome are available
 
 **CI integration:**
-- `lighthouserc.json` blocks PR if any score drops > 10 points
-- `perf.budget.json` enforces JS bundle, image, and API budgets
+- The CI workflow runs `compare.sh` against the committed `perf-scores.json`; it blocks the PR if any category score drops > 10 points.
+- `lighthouserc.json` keeps absolute floors (performance ≥ 0.7, LCP ≤ 2500ms, CLS ≤ 0.1) and references `perf.budget.json` via `budgetsFile`.
+- `perf.budget.json` enforces the JS bundle and image budgets. API p95 is checked by `plugin/scripts/api-p95.sh`, not by the Lighthouse budget format.
+
+**Decisions made during implementation** (where this spec was open):
+- Plugin root is the repo root. Manifests live in `.claude-plugin/`; slash commands in `commands/`; scripts stay in `plugin/scripts/`.
+- Plugin and marketplace are named `cogumi-app-performance`.
+- Throttling is Lighthouse's Slow 4G profile everywhere (the spec's earlier Slow 3G wording is retired).
+- INP is a field-only budget; lab navigation runs do not produce it. TBT is the lab proxy in CI.
+- API p95 is measured directly by `api-p95.sh`.
+- CrUX p75 is documented (PageSpeed Insights API or CrUX dashboard), not scripted.
 
 ## Non-goals
 

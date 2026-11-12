@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Stub for curl: prints FAKE_CURL_TIME (with newline) when asked for %{time_total}.
+for arg in "$@"; do
+  case "$arg" in
+    *time_total*)
+      printf '%s\n' "${FAKE_CURL_TIME:-0.2}"
+      exit 0
+      ;;
+  esac
+done
+exit 0

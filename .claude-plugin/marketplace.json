@@ -1,0 +1,14 @@
+{
+  "name": "cogumi-app-performance",
+  "owner": {
+    "name": "dkeviv"
+  },
+  "description": "App performance skill and Lighthouse measurement commands: baseline, compare, CI budgets.",
+  "plugins": [
+    {
+      "name": "cogumi-app-performance",
+      "source": "./",
+      "description": "App performance skill and Lighthouse measurement commands: baseline, compare, CI budgets."
+    }
+  ]
+}

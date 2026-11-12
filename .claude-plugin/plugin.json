@@ -1,0 +1,10 @@
+{
+  "name": "cogumi-app-performance",
+  "version": "0.1.0",
+  "description": "App performance skill and Lighthouse measurement commands: baseline, compare, CI budgets.",
+  "author": {
+    "name": "dkeviv"
+  },
+  "repository": "https://github.com/dkeviv/cogumi-app-performance",
+  "license": "MIT"
+}

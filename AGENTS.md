@@ -24,7 +24,7 @@ After changes, measure the delta:
 ```bash
 bash path/to/cogumi-app-performance/plugin/scripts/compare.sh [url]
 # compares against perf-scores.json
-# exit 1 if performance score drops > 10 points
+# exit 1 if any category score drops > 10 points
 ```
 
 ## Performance budgets
