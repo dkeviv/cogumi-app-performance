@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Stub for `lhci collect`: copies fixture reports into --outputDir.
+set -euo pipefail
+
+if [ "${FAKE_LHCI_FAIL:-0}" = "1" ]; then
+  echo "fake lhci: forced failure" >&2
+  exit 1
+fi
+
+out=""
+for arg in "$@"; do
+  case "$arg" in
+    --outputDir=*) out="${arg#--outputDir=}" ;;
+  esac
+done
+
+if [ -z "$out" ]; then
+  echo "fake lhci: no --outputDir given" >&2
+  exit 1
+fi
+
+mkdir -p "$out"
+src="${FAKE_LHCI_FIXTURES:-$(cd "$(dirname "$0")/../fixtures" && pwd)}"
+for f in "$src"/lhr-*.json; do
+  cp "$f" "$out/"
+done

@@ -1,0 +1,25 @@
+{
+  "finalUrl": "http://localhost:3000/",
+  "fetchTime": "2026-11-11T10:00:02.000Z",
+  "categories": {
+    "performance": {"score": 0.70},
+    "accessibility": {"score": 0.90},
+    "seo": {"score": 0.90},
+    "best-practices": {"score": 0.90}
+  },
+  "audits": {
+    "largest-contentful-paint": {"numericValue": 2400},
+    "cumulative-layout-shift": {"numericValue": 0.05},
+    "total-blocking-time": {"numericValue": 200},
+    "first-contentful-paint": {"numericValue": 1200},
+    "speed-index": {"numericValue": 2000},
+    "total-byte-weight": {
+      "details": {
+        "items": [
+          {"url": "http://localhost:3000/app.js", "totalBytes": 200000},
+          {"url": "http://localhost:3000/hero.webp", "totalBytes": 100000}
+        ]
+      }
+    }
+  }
+}
