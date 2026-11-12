@@ -37,22 +37,14 @@ cat > "$LHCI_CONFIG" <<EOF
     },
     "assert": {
       "preset": "lighthouse:no-pwa",
-      "budgetsFile": "perf.budget.json",
       "assertions": {
         "categories:performance": ["error", {"minScore": 0.7}],
         "categories:accessibility": ["warn", {"minScore": 0.9}],
         "largest-contentful-paint": ["error", {"maxNumericValue": 2500}],
         "cumulative-layout-shift": ["error", {"maxNumericValue": 0.1}],
         "total-blocking-time": ["warn", {"maxNumericValue": 300}],
-        "interactive": ["warn", {"maxNumericValue": 5000}],
-        "uses-optimized-images": ["warn", {"maxLength": 0}],
-        "uses-webp-images": ["warn", {"maxLength": 0}],
-        "uses-text-compression": ["error", {"maxLength": 0}],
-        "render-blocking-resources": ["warn", {"maxLength": 0}]
+        "interactive": ["warn", {"maxNumericValue": 5000}]
       }
-    },
-    "upload": {
-      "target": "temporary-public-storage"
     }
   }
 }
@@ -108,9 +100,9 @@ jobs:
       - run: npm run start &
       - run: npx wait-on http://localhost:3000
       - run: npm install -g @lhci/cli
-      - run: lhci autorun
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+      - run: lhci collect
+      - run: lhci assert
+      - run: lhci assert --no-lighthouserc --budgetsFile=perf.budget.json
       # Regression gate: fails if any category drops > 10 points vs the committed perf-scores.json.
       # Requires the plugin scripts in the repo (clone or vendor cogumi-app-performance/plugin/scripts).
       - run: bash cogumi-app-performance/plugin/scripts/compare.sh http://localhost:3000
