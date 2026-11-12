@@ -21,6 +21,7 @@ echo ""
 check "Node.js (≥18)" "node" "https://nodejs.org"
 check "lhci" "lhci" "npm install -g @lhci/cli"
 check "jq" "jq" "brew install jq  (macOS) or apt install jq  (Linux)"
+check "bc" "bc" "brew install bc  (macOS) or apt install bc  (Linux)"
 
 # Check Chrome / Chromium
 if command -v google-chrome &>/dev/null || command -v chromium-browser &>/dev/null \
